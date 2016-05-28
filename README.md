@@ -1,6 +1,6 @@
 # stylus-mode
 
-`stylus-mode` offers Emacs support for [Stylus](http://stylus-lang.com/). It is based on [pug-mode](https://github.com/hlissner/pug-mode).
+`stylus-mode` offers Emacs support for [Stylus](http://stylus-lang.com/). It is based on [pug-mode](https://github.com/hlissner/pug-mode) and [jade-mode](https://github.com/brianc/jade-mode).
 
 ## Installation
 
