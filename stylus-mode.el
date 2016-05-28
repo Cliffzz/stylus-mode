@@ -108,9 +108,7 @@ if the next line could be nested within this line.")
 
 ;;;###autoload
 (define-derived-mode stylus-mode stylus-parent-mode "Stylus"
-  "Major mode for editing Stylus files.
-
-\\{stylus-mode-map}"
+  "Major mode for editing Stylus files."
   (set-syntax-table stylus-mode-syntax-table)
   (add-to-list 'font-lock-extend-region-functions 'stylus-extend-region)
   (set (make-local-variable 'font-lock-multiline) t)
@@ -120,36 +118,9 @@ if the next line could be nested within this line.")
   (set (make-local-variable 'electric-indent-chars) nil)
   (set (make-local-variable 'comment-start) "//")
   (set (make-local-variable 'comment-end) "")
-  (setq comment-start "/")
   (setq indent-tabs-mode nil)
-  (setq font-lock-defaults '((stylus-font-lock-keywords) nil t)))
-
-;; Useful functions
-
-(defun stylus-comment-block ()
-  "Comment the current block of Stylus code."
-  (interactive)
-  (save-excursion
-    (let ((indent (current-indentation)))
-      (back-to-indentation)
-      (insert "/")
-      (newline)
-      (indent-to indent)
-      (beginning-of-line)
-      (stylus-mark-sexp)
-      (stylus-reindent-region-by tab-width))))
-
-(defun stylus-uncomment-block ()
-  "Uncomment the current block of Stylus code."
-  (interactive)
-  (save-excursion
-    (beginning-of-line)
-    (while (not (looking-at stylus-comment-re))
-      (stylus-up-list)
-      (beginning-of-line))
-    (stylus-mark-sexp)
-    (kill-line 1)
-    (stylus-reindent-region-by (- tab-width))))
+  (setq font-lock-defaults '(stylus-font-lock-keywords))
+  (use-local-map stylus-mode-map))
 
 ;; Navigation
 
