@@ -226,6 +226,48 @@ character of the next line."
 
 ;; Indentation and electric keys
 
+(defconst pug-tags-re
+  (concat "^ *\\("
+          (regexp-opt
+           '("a" "abbr" "acronym" "address" "applet" "area" "article" "aside"
+             "audio" "b" "base" "basefont" "bdo" "big" "blockquote" "body"
+             "br" "button" "canvas" "caption" "center" "cite" "code" "col"
+             "colgroup" "command" "datalist" "dd" "del" "details" "dialog" "dfn"
+             "dir" "div" "dl" "dt" "em" "embed" "fieldset" "figure" "font" "footer"
+             "form" "frame" "frameset" "h1" "h2" "h3" "h4" "h5" "h6"
+             "head" "header" "hgroup" "hr" "html" "i"
+             "iframe" "img" "input" "ins" "keygen" "kbd" "label" "legend" "li" "link"
+             "map" "mark" "menu" "meta" "meter" "nav" "noframes" "noscript" "object"
+             "ol" "optgroup" "option" "output" "p" "param" "pre" "progress" "q" "rp"
+             "rt" "ruby" "s" "samp" "script" "section" "select" "small" "source" "span"
+             "strike" "strong" "style" "sub" "sup" "table" "tbody" "td" "textarea" "tfoot"
+             "th" "thead" "time" "title" "tr" "tt" "u" "ul" "var" "video" "xmp") 'words)
+          "\\)")
+  "Regex of all html4/5 tags.")
+
+(defconst pug-selfclosing-tags-re
+  (concat "^ *"
+          (regexp-opt
+           '("meta" "title" "img" "area" "base" "br" "col" "command" "embed" "hr" "input"
+             "link" "param" "source" "track" "wbr") t)))
+
+(defconst pug-keywords-re
+  (concat "^ *\\(?:- \\)?" (regexp-opt '("extends" "block") t)))
+
+(defconst pug-control-re
+  (concat "^ *\\(- \\)?\\("
+          (regexp-opt
+           '("if" "unless" "while" "until" "else" "for"
+             "begin" "elsif" "when" "default" "case" "var'"
+
+             "extends" "block" "mixin"
+             ) 'words)
+          "\\)"))
+
+;; Helper for nested block (comment, embedded, text)
+(defun pug-nested-re (re)
+  (concat "^\\( *\\)" re "\n\\(\\(?:\\1" (make-string tab-width ? ) ".*\\| *\\)\n\\)*"))
+
 (defun stylus-indent-p ()
   "Returns true if the current line can have lines nested beneath it."
   (or (looking-at-p stylus-comment-re)
