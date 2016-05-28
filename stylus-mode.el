@@ -226,7 +226,7 @@ character of the next line."
 
 ;; Indentation and electric keys
 
-(defconst pug-tags-re
+(defconst stylus-tags-re
   (concat "^ *\\("
           (regexp-opt
            '("a" "abbr" "acronym" "address" "applet" "area" "article" "aside"
@@ -245,16 +245,16 @@ character of the next line."
           "\\)")
   "Regex of all html4/5 tags.")
 
-(defconst pug-selfclosing-tags-re
+(defconst stylus-selfclosing-tags-re
   (concat "^ *"
           (regexp-opt
            '("meta" "title" "img" "area" "base" "br" "col" "command" "embed" "hr" "input"
              "link" "param" "source" "track" "wbr") t)))
 
-(defconst pug-keywords-re
+(defconst stylus-keywords-re
   (concat "^ *\\(?:- \\)?" (regexp-opt '("extends" "block") t)))
 
-(defconst pug-control-re
+(defconst stylus-control-re
   (concat "^ *\\(- \\)?\\("
           (regexp-opt
            '("if" "unless" "while" "until" "else" "for"
@@ -265,7 +265,7 @@ character of the next line."
           "\\)"))
 
 ;; Helper for nested block (comment, embedded, text)
-(defun pug-nested-re (re)
+(defun stylus-nested-re (re)
   (concat "^\\( *\\)" re "\n\\(\\(?:\\1" (make-string tab-width ? ) ".*\\| *\\)\n\\)*"))
 
 (defun stylus-indent-p ()
