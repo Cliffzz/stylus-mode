@@ -50,46 +50,165 @@ if the next line could be nested within this line.")
 
 ;; Font lock
 
-(defconst stylus-colours
-  (eval-when-compile
-    (regexp-opt
-     '("black" "silver" "gray" "white" "maroon" "red"
-       "purple" "fuchsia" "green" "lime" "olive" "yellow" "navy"
-       "blue" "teal" "aqua")))
-  "Stylus keywords.")
+(defconst stylus-tags-re
+  (concat "^ *\\("
+          (regexp-opt
+           '("a" "abbr" "acronym" "address" "applet" "area" "article" "aside"
+             "audio" "b" "base" "basefont" "bdo" "big" "blockquote" "body"
+             "br" "button" "canvas" "caption" "center" "cite" "code" "col"
+             "colgroup" "command" "datalist" "dd" "del" "details" "dialog" "dfn"
+             "dir" "div" "dl" "dt" "em" "embed" "fieldset" "figure" "font" "footer"
+             "form" "frame" "frameset" "h1" "h2" "h3" "h4" "h5" "h6"
+             "head" "header" "hgroup" "hr" "html" "i"
+             "iframe" "img" "input" "ins" "keygen" "kbd" "label" "legend" "li" "link"
+             "map" "mark" "menu" "meta" "meter" "nav" "noframes" "noscript" "object"
+             "ol" "optgroup" "option" "output" "p" "param" "pre" "progress" "q" "rp"
+             "rt" "ruby" "s" "samp" "script" "section" "select" "small" "source" "span"
+             "strike" "strong" "style" "sub" "sup" "table" "tbody" "td" "textarea" "tfoot"
+             "th" "thead" "time" "title" "tr" "tt" "u" "ul" "var" "video" "xmp") 'words)
+          "\\)")
+  "Regex of all html4/5 tags.")
 
-(defconst stylus-keywords
-  (eval-when-compile
-    (regexp-opt
-     '("return" "if" "else" "unless" "for" "in" "true" "false")))
-  "Stylus keywords.")
+(defconst stylus-selfclosing-tags-re
+  (concat "^ *"
+          (regexp-opt
+           '("meta" "title" "img" "area" "base" "br" "col" "command" "embed" "hr" "input"
+             "link" "param" "source" "track" "wbr") t)))
 
-(defvar stylus-font-lock-keywords
-  `(
-    (,"^[ {2,}]+[a-z0-9_:\\-]+[ ]" 0 font-lock-variable-name-face)
-    (,"\\(::?\\(root\\|nth-child\\|nth-last-child\\|nth-of-type\\|nth-last-of-type\\|first-child\\|last-child\\|first-of-type\\|last-of-type\\|only-child\\|only-of-type\\|empty\\|link\\|visited\\|active\\|hover\\|focus\\|target\\|lang\\|enabled\\|disabled\\|checked\\|not\\)\\)*" . font-lock-type-face) ;; pseudoSelectors
-    (,(concat "[^_$]?\\<\\(" stylus-colours "\\)\\>[^_]?")
-     0 font-lock-constant-face)
-    (,(concat "[^_$]?\\<\\(" stylus-keywords "\\)\\>[^_]?")
-     0 font-lock-keyword-face)
-    (,"#\\w[a-zA-Z0-9\\-]+" 0 font-lock-keyword-face) ; id selectors (also colors...)
-    (,"\\([.0-9]+:?\\(em\\|ex\\|px\\|mm\\|cm\\|in\\|pt\\|pc\\|deg\\|rad\\|grad\\|ms\\|s\\|Hz\\|kHz\\|rem\\|%\\)\\b\\)" 0 font-lock-constant-face)
-    (,"\\b[0-9]+\\b" 0 font-lock-constant-face)
-    (,"\\.\\w[a-zA-Z0-9\\-]+" 0 font-lock-type-face) ; class names
-    (,"$\\w+" 0 font-lock-variable-name-face)
-    (,"@\\w[a-zA-Z0-9\\-]+" 0 font-lock-preprocessor-face) ; directives and backreferences
+(defconst stylus-keywords-re
+  (concat "^ *\\(?:- \\)?" (regexp-opt '("extends" "block") t)))
+
+(defconst stylus-control-re
+  (concat "^ *\\(- \\)?\\("
+          (regexp-opt
+           '("if" "unless" "while" "until" "else" "for"
+             "begin" "elsif" "when" "default" "case" "var'"
+
+             "extends" "block" "mixin"
+             ) 'words)
+          "\\)"))
+
+;; Helper for nested block (comment, embedded, text)
+(defun stylus-nested-re (re)
+  (concat "^\\( *\\)" re "\n\\(\\(?:\\1" (make-string tab-width ? ) ".*\\| *\\)\n\\)*"))
+
+(defconst stylus-font-lock-keywords
+  `(;; comment block
+    (,(stylus-nested-re "//")
+     0 font-lock-comment-face)
+    ;; comment line
+    ("^ *\\(-//\\|//-?\\).*"
+     0 font-lock-comment-face prepend)
+    ;; html comment block
+    ("<!--.*-->"
+     0 font-lock-comment-face)
+    ;; filters
+    (,(stylus-nested-re "\\(:[a-z0-9_]+\\)")
+     (0 font-lock-preprocessor-face prepend))
+    ;; text block
+    ;; (,(stylus-nested-re "[\\.#+a-z][^ \t]*\\(?:(.+)\\)?\\(\\.\\)")
+    ;;  2 font-lock-string-face)
+
+    (,stylus-control-re
+     2 font-lock-keyword-face append)
+
+    ("^ *|.*"
+     0 font-lock-string-face)
+
+    ;; Single quote string
+    ("[^a-z]\\('[^'\n]*'\\)"
+     1 font-lock-string-face append)
+    ;; Double quoted string
+    ("\\(\"[^\"]*\"\\)"
+     1 font-lock-string-face append)
+
+    ;; interpolation
+    ("[#!]{.+}" . font-lock-constant-face)
+
+    ("^ *\\(include\\)\\(:[^ \t]+\\|\\)\\(.+\\)\n"
+     (1 font-lock-keyword-face)
+     (2 font-lock-preprocessor-face)
+     (3 font-lock-string-face))
+
+    ;; +mixin invocation
+    ("^ *\\+\\([a-z0-9_-]+\\)"
+     0 font-lock-builtin-face)
+    ;; #id
+    ("^ *[a-z0-9_.-]*\\(#[a-z0-9_-]+\\((.*)\\)?\\)[^ \t]*$"
+     1 font-lock-keyword-face append)
+    ;; .class
+    ("^ *[a-z0-9_#-]*\\(\\(\\.[a-z0-9_-]+\\((.*)\\)?\\)+\\)[^ \t]*$"
+     1 font-lock-variable-name-face append)
+    ;; tag
+    (,stylus-tags-re
+     1 font-lock-function-name-face)
+
+    ;; doctype
+    ("^\\(doctype .*$\\)"
+     1 font-lock-comment-face)
+    ;; ==', =', -
+    ("^ *\\(==?'?\\|-\\)"
+      (1 font-lock-preprocessor-face)
+      (,(regexp-opt
+         '("if" "else" "elsif" "for" "in" "do" "unless"
+           "while" "yield" "not" "and" "or")
+         'words) nil nil
+           (0 font-lock-keyword-face)))
+    ;; tag ==, tag =
+    ("^ *[\\.#a-z0-9_-]+.*[^<>!]\\(==?'?\\) +"
+     1 font-lock-preprocessor-face)
     ))
+
+(defconst stylus-embedded-re "^ *:[a-z0-9_-]+")
+(defconst stylus-plain-re "^ *[\\.#+a-z][^ \t]*\\(?:(.+)\\)?\\.")
+(defconst stylus-comment-re "^ *-?//-?")
+
+(defun* stylus-extend-region ()
+  "Extend the font-lock region to encompass embedded engines and comments."
+  (let ((old-beg font-lock-beg)
+        (old-end font-lock-end))
+    (save-excursion
+      (goto-char font-lock-beg)
+      (unless (looking-at "\\.$")
+        (beginning-of-line)
+        (unless (or (looking-at stylus-embedded-re)
+                    (looking-at stylus-comment-re))
+          (return-from stylus-extend-region)))
+      (setq font-lock-beg (point))
+      (stylus-forward-sexp)
+      (beginning-of-line)
+      (setq font-lock-end (max font-lock-end (point))))
+    (or (/= old-beg font-lock-beg)
+        (/= old-end font-lock-end))))
+
+(defvar jade-tag-declaration-char-re "[-a-zA-Z0-9_.#+]"
+  "Regexp used to match a character in a tag declaration")
+
+(defun jade-goto-end-of-tag ()
+  "Skip ahead over whitespace, tag characters (defined in
+`jade-tag-declaration-char-re'), and paren blocks (using
+`forward-sexp') to put point at the end of a full tag declaration (but
+before its content). Use when point is inside or to the left of a tag
+declaration"
+  (interactive)
+
+  ;; skip indentation characters
+  (while (looking-at "[ \t]")
+    (forward-char 1))
+
+  (while (looking-at jade-tag-declaration-char-re)
+    (forward-char 1))
+  (if (looking-at "(")
+      (forward-sexp 1)))
 
 ;; Mode setup
 
-(defvar stylus-syntax-table
-  (let ((syntable (make-syntax-table)))
-    (modify-syntax-entry ?\/ ". 124b" syntable)
-    (modify-syntax-entry ?* ". 23" syntable)
-    (modify-syntax-entry ?\n "> b" syntable)
-    (modify-syntax-entry ?' "\"" syntable)
-    syntable)
-  "Syntax table for `stylus-mode'.")
+(defvar stylus-mode-syntax-table
+  (let ((table (make-syntax-table)))
+    (modify-syntax-entry ?: "." table)
+    (modify-syntax-entry ?_ "w" table)
+    table)
+  "Syntax table in use in stylus-mode buffers.")
 
 (defvar stylus-mode-map
   (let ((map (make-sparse-keymap)))
@@ -108,7 +227,9 @@ if the next line could be nested within this line.")
 
 ;;;###autoload
 (define-derived-mode stylus-mode stylus-parent-mode "Stylus"
-  "Major mode for editing Stylus files."
+  "Major mode for editing Stylus files.
+
+\\{stylus-mode-map}"
   (set-syntax-table stylus-mode-syntax-table)
   (add-to-list 'font-lock-extend-region-functions 'stylus-extend-region)
   (set (make-local-variable 'font-lock-multiline) t)
@@ -116,11 +237,36 @@ if the next line could be nested within this line.")
   (set (make-local-variable 'indent-region-function) 'stylus-indent-region)
   (set (make-local-variable 'parse-sexp-lookup-properties) t)
   (set (make-local-variable 'electric-indent-chars) nil)
-  (set (make-local-variable 'comment-start) "//")
-  (set (make-local-variable 'comment-end) "")
+  (setq comment-start "/")
   (setq indent-tabs-mode nil)
-  (setq font-lock-defaults '(stylus-font-lock-keywords))
-  (use-local-map stylus-mode-map))
+  (setq font-lock-defaults '((stylus-font-lock-keywords) nil t)))
+
+;; Useful functions
+
+(defun stylus-comment-block ()
+  "Comment the current block of Stylus code."
+  (interactive)
+  (save-excursion
+    (let ((indent (current-indentation)))
+      (back-to-indentation)
+      (insert "/")
+      (newline)
+      (indent-to indent)
+      (beginning-of-line)
+      (stylus-mark-sexp)
+      (stylus-reindent-region-by tab-width))))
+
+(defun stylus-uncomment-block ()
+  "Uncomment the current block of Stylus code."
+  (interactive)
+  (save-excursion
+    (beginning-of-line)
+    (while (not (looking-at stylus-comment-re))
+      (stylus-up-list)
+      (beginning-of-line))
+    (stylus-mark-sexp)
+    (kill-line 1)
+    (stylus-reindent-region-by (- tab-width))))
 
 ;; Navigation
 
@@ -225,52 +371,6 @@ character of the next line."
          (point))))))
 
 ;; Indentation and electric keys
-
-(defconst stylus-tags-re
-  (concat "^ *\\("
-          (regexp-opt
-           '("a" "abbr" "acronym" "address" "applet" "area" "article" "aside"
-             "audio" "b" "base" "basefont" "bdo" "big" "blockquote" "body"
-             "br" "button" "canvas" "caption" "center" "cite" "code" "col"
-             "colgroup" "command" "datalist" "dd" "del" "details" "dialog" "dfn"
-             "dir" "div" "dl" "dt" "em" "embed" "fieldset" "figure" "font" "footer"
-             "form" "frame" "frameset" "h1" "h2" "h3" "h4" "h5" "h6"
-             "head" "header" "hgroup" "hr" "html" "i"
-             "iframe" "img" "input" "ins" "keygen" "kbd" "label" "legend" "li" "link"
-             "map" "mark" "menu" "meta" "meter" "nav" "noframes" "noscript" "object"
-             "ol" "optgroup" "option" "output" "p" "param" "pre" "progress" "q" "rp"
-             "rt" "ruby" "s" "samp" "script" "section" "select" "small" "source" "span"
-             "strike" "strong" "style" "sub" "sup" "table" "tbody" "td" "textarea" "tfoot"
-             "th" "thead" "time" "title" "tr" "tt" "u" "ul" "var" "video" "xmp") 'words)
-          "\\)")
-  "Regex of all html4/5 tags.")
-
-(defconst stylus-selfclosing-tags-re
-  (concat "^ *"
-          (regexp-opt
-           '("meta" "title" "img" "area" "base" "br" "col" "command" "embed" "hr" "input"
-             "link" "param" "source" "track" "wbr") t)))
-
-(defconst stylus-keywords-re
-  (concat "^ *\\(?:- \\)?" (regexp-opt '("extends" "block") t)))
-
-(defconst stylus-control-re
-  (concat "^ *\\(- \\)?\\("
-          (regexp-opt
-           '("if" "unless" "while" "until" "else" "for"
-             "begin" "elsif" "when" "default" "case" "var'"
-
-             "extends" "block" "mixin"
-             ) 'words)
-          "\\)"))
-
-(defconst stylus-embedded-re "^ *:[a-z0-9_-]+")
-(defconst stylus-plain-re "^ *[\\.#+a-z][^ \t]*\\(?:(.+)\\)?\\.")
-(defconst stylus-comment-re "^ *-?//-?")
-
-;; Helper for nested block (comment, embedded, text)
-(defun stylus-nested-re (re)
-  (concat "^\\( *\\)" re "\n\\(\\(?:\\1" (make-string tab-width ? ) ".*\\| *\\)\n\\)*"))
 
 (defun stylus-indent-p ()
   "Returns true if the current line can have lines nested beneath it."
