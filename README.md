@@ -1,15 +1,22 @@
 # stylus-mode
 
-`stylus-mode` offers Emacs support for [Stylus](http://stylus-lang.com/). It is based on [pug-mode](https://github.com/hlissner/pug-mode) and [jade-mode](https://github.com/brianc/jade-mode).
+`stylus-mode` offers Emacs support for [Stylus](http://stylus-lang.com/).
+It is based on [pug-mode](https://github.com/hlissner/pug-mode) and
+[jade-mode](https://github.com/brianc/jade-mode).
+
+_Disclaimer:_ This package works, and I use it. However, I'm not the most
+qualified person to write an emacs mode, so this is basically a hacked together
+combination of `pug-mode` and `jade-mode`. Pull requests are welcome.
 
 ## Installation
 
 `stylus-mode` isn't available on MELPA yet.
 
-In the meantime, download `pug-mode.el` and insert the following into your emacs.d:
+In the meantime, download `stlyus-mode.el` and insert the following into your
+emacs.d:
 
 ```elisp
-(require 'pug-mode)
+(require 'stlyus-mode)
 ```
 
 For Spacemacs:
@@ -22,5 +29,6 @@ dotspacemacs-additional-packages '(
 
 ## Why not use jade-mode?
 
-For pretty much the same reason that `pug-mode` was created to be used over `jade-mode`,
-mainly `jade-mode`'s malfunctioning indentation and confusing source.
+For pretty much the same reason that `pug-mode` was created to be used over
+`jade-mode`, mainly `jade-mode`'s malfunctioning indentation and confusing
+source.
