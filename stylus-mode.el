@@ -92,71 +92,34 @@ if the next line could be nested within this line.")
 (defun stylus-nested-re (re)
   (concat "^\\( *\\)" re "\n\\(\\(?:\\1" (make-string tab-width ? ) ".*\\| *\\)\n\\)*"))
 
-(defconst stylus-font-lock-keywords
-  `(;; comment block
-    (,(stylus-nested-re "//")
-     0 font-lock-comment-face)
-    ;; comment line
-    ("^ *\\(-//\\|//-?\\).*"
-     0 font-lock-comment-face prepend)
-    ;; html comment block
-    ("<!--.*-->"
-     0 font-lock-comment-face)
-    ;; filters
-    (,(stylus-nested-re "\\(:[a-z0-9_]+\\)")
-     (0 font-lock-preprocessor-face prepend))
-    ;; text block
-    ;; (,(stylus-nested-re "[\\.#+a-z][^ \t]*\\(?:(.+)\\)?\\(\\.\\)")
-    ;;  2 font-lock-string-face)
+(defconst stylus-colours
+  (eval-when-compile
+    (regexp-opt
+     '("black" "silver" "gray" "white" "maroon" "red"
+       "purple" "fuchsia" "green" "lime" "olive" "yellow" "navy"
+       "blue" "teal" "aqua")))
+  "Stylus keywords.")
 
-    (,stylus-control-re
-     2 font-lock-keyword-face append)
+(defconst stylus-keywords
+  (eval-when-compile
+    (regexp-opt
+     '("return" "if" "else" "unless" "for" "in" "true" "false")))
+  "Stylus keywords.")
 
-    ("^ *|.*"
-     0 font-lock-string-face)
-
-    ;; Single quote string
-    ("[^a-z]\\('[^'\n]*'\\)"
-     1 font-lock-string-face append)
-    ;; Double quoted string
-    ("\\(\"[^\"]*\"\\)"
-     1 font-lock-string-face append)
-
-    ;; interpolation
-    ("[#!]{.+}" . font-lock-constant-face)
-
-    ("^ *\\(include\\)\\(:[^ \t]+\\|\\)\\(.+\\)\n"
-     (1 font-lock-keyword-face)
-     (2 font-lock-preprocessor-face)
-     (3 font-lock-string-face))
-
-    ;; +mixin invocation
-    ("^ *\\+\\([a-z0-9_-]+\\)"
-     0 font-lock-builtin-face)
-    ;; #id
-    ("^ *[a-z0-9_.-]*\\(#[a-z0-9_-]+\\((.*)\\)?\\)[^ \t]*$"
-     1 font-lock-keyword-face append)
-    ;; .class
-    ("^ *[a-z0-9_#-]*\\(\\(\\.[a-z0-9_-]+\\((.*)\\)?\\)+\\)[^ \t]*$"
-     1 font-lock-variable-name-face append)
-    ;; tag
-    (,stylus-tags-re
-     1 font-lock-function-name-face)
-
-    ;; doctype
-    ("^\\(doctype .*$\\)"
-     1 font-lock-comment-face)
-    ;; ==', =', -
-    ("^ *\\(==?'?\\|-\\)"
-      (1 font-lock-preprocessor-face)
-      (,(regexp-opt
-         '("if" "else" "elsif" "for" "in" "do" "unless"
-           "while" "yield" "not" "and" "or")
-         'words) nil nil
-           (0 font-lock-keyword-face)))
-    ;; tag ==, tag =
-    ("^ *[\\.#a-z0-9_-]+.*[^<>!]\\(==?'?\\) +"
-     1 font-lock-preprocessor-face)
+(defvar stylus-font-lock-keywords
+  `(
+    (,"^[ {2,}]+[a-z0-9_:\\-]+[ ]" 0 font-lock-variable-name-face)
+    (,"\\(::?\\(root\\|nth-child\\|nth-last-child\\|nth-of-type\\|nth-last-of-type\\|first-child\\|last-child\\|first-of-type\\|last-of-type\\|only-child\\|only-of-type\\|empty\\|link\\|visited\\|active\\|hover\\|focus\\|target\\|lang\\|enabled\\|disabled\\|checked\\|not\\)\\)*" . font-lock-type-face) ;; pseudoSelectors
+    (,(concat "[^_$]?\\<\\(" stylus-colours "\\)\\>[^_]?")
+     0 font-lock-constant-face)
+    (,(concat "[^_$]?\\<\\(" stylus-keywords "\\)\\>[^_]?")
+     0 font-lock-keyword-face)
+    (,"#\\w[a-zA-Z0-9\\-]+" 0 font-lock-keyword-face) ; id selectors (also colors...)
+    (,"\\([.0-9]+:?\\(em\\|ex\\|px\\|mm\\|cm\\|in\\|pt\\|pc\\|deg\\|rad\\|grad\\|ms\\|s\\|Hz\\|kHz\\|rem\\|%\\)\\b\\)" 0 font-lock-constant-face)
+    (,"\\b[0-9]+\\b" 0 font-lock-constant-face)
+    (,"\\.\\w[a-zA-Z0-9\\-]+" 0 font-lock-type-face) ; class names
+    (,"$\\w+" 0 font-lock-variable-name-face)
+    (,"@\\w[a-zA-Z0-9\\-]+" 0 font-lock-preprocessor-face) ; directives and backreferences
     ))
 
 (defconst stylus-embedded-re "^ *:[a-z0-9_-]+")
@@ -203,23 +166,16 @@ declaration"
 
 ;; Mode setup
 
-(defvar stylus-mode-syntax-table
-  (let ((table (make-syntax-table)))
-    (modify-syntax-entry ?: "." table)
-    (modify-syntax-entry ?_ "w" table)
-    table)
-  "Syntax table in use in stylus-mode buffers.")
+(defvar stylus-syntax-table
+  (let ((syntable (make-syntax-table)))
+    (modify-syntax-entry ?\/ ". 124b" syntable)
+    (modify-syntax-entry ?* ". 23" syntable)
+    (modify-syntax-entry ?\n "> b" syntable)
+    (modify-syntax-entry ?' "\"" syntable)
+    syntable)
+  "Syntax table for `stylus-mode'.")
 
-(defvar stylus-mode-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map "\177" 'stylus-electric-backspace)
-    (define-key map "\C-?" 'stylus-electric-backspace)
-    (define-key map "\C-c\C-f" 'stylus-forward-sexp)
-    (define-key map "\C-c\C-b" 'stylus-backward-sexp)
-    (define-key map "\C-c\C-u" 'stylus-up-list)
-    (define-key map "\C-c\C-d" 'stylus-down-list)
-    (define-key map "\C-c\C-k" 'stylus-kill-line-and-indent)
-    map))
+(defvar stylus-mode-map (make-sparse-keymap))
 
 ;; For compatibility with Emacs < 24, derive conditionally
 (defalias 'stylus-parent-mode
@@ -227,19 +183,19 @@ declaration"
 
 ;;;###autoload
 (define-derived-mode stylus-mode stylus-parent-mode "Stylus"
-  "Major mode for editing Stylus files.
-
-\\{stylus-mode-map}"
-  (set-syntax-table stylus-mode-syntax-table)
+  "Major mode for editing Stylus files."
+  (set-syntax-table stylus-syntax-table)
   (add-to-list 'font-lock-extend-region-functions 'stylus-extend-region)
   (set (make-local-variable 'font-lock-multiline) t)
   (set (make-local-variable 'indent-line-function) 'stylus-indent-line)
   (set (make-local-variable 'indent-region-function) 'stylus-indent-region)
   (set (make-local-variable 'parse-sexp-lookup-properties) t)
   (set (make-local-variable 'electric-indent-chars) nil)
-  (setq comment-start "/")
+  (set (make-local-variable 'comment-start) "//")
+  (set (make-local-variable 'comment-end) "")
   (setq indent-tabs-mode nil)
-  (setq font-lock-defaults '((stylus-font-lock-keywords) nil t)))
+  (setq font-lock-defaults '(stylus-font-lock-keywords))
+  (use-local-map stylus-mode-map))
 
 ;; Useful functions
 
