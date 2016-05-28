@@ -264,6 +264,10 @@ character of the next line."
              ) 'words)
           "\\)"))
 
+(defconst stylus-embedded-re "^ *:[a-z0-9_-]+")
+(defconst stylus-plain-re "^ *[\\.#+a-z][^ \t]*\\(?:(.+)\\)?\\.")
+(defconst stylus-comment-re "^ *-?//-?")
+
 ;; Helper for nested block (comment, embedded, text)
 (defun stylus-nested-re (re)
   (concat "^\\( *\\)" re "\n\\(\\(?:\\1" (make-string tab-width ? ) ".*\\| *\\)\n\\)*"))
