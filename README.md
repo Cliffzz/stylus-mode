@@ -12,11 +12,11 @@ combination of `pug-mode` and `jade-mode`. Pull requests are welcome.
 
 `stylus-mode` isn't available on MELPA yet.
 
-In the meantime, download `stlyus-mode.el` and insert the following into your
+In the meantime, download `stylus-mode.el` and insert the following into your
 emacs.d:
 
 ```elisp
-(require 'stlyus-mode)
+(require 'stylus-mode)
 ```
 
 For Spacemacs:
