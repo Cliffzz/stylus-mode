@@ -118,7 +118,7 @@ if the next line could be nested within this line.")
     (,"\\([.0-9]+:?\\(em\\|ex\\|px\\|mm\\|cm\\|in\\|pt\\|pc\\|deg\\|rad\\|grad\\|ms\\|s\\|Hz\\|kHz\\|rem\\|%\\)\\b\\)" 0 font-lock-constant-face)
     (,"\\b[0-9]+\\b" 0 font-lock-constant-face)
     (,"\\.\\w[a-zA-Z0-9\\-]+" 0 font-lock-type-face) ; class names
-    (,"$\\w+" 0 font-lock-variable-name-face)
+    (,"$\\(?:\\w\\|\\s_\\)+" 0 font-lock-variable-name-face)
     (,"@\\w[a-zA-Z0-9\\-]+" 0 font-lock-preprocessor-face) ; directives and backreferences
     ))
 
