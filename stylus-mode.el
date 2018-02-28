@@ -9,7 +9,7 @@
 ;; Author: Vlad-Ștefan Harbuz
 ;; Inspired by: https://github.com/hlissner/pug-mode
 ;; URL: http://github.com/vladh
-;; Version: 1.0
+;; Version: 1.0.1
 ;; Keywords: stylus, css, language
 ;;
 ;;; Commentary:
